@@ -42,7 +42,7 @@ While downloading file:
     "uuid": `uuid`, 
     "filename": `filename`, 
     "have_access": "Y/N", 
-    "partitions": [{"block_num": "#", "storage_loc": "aws/gcp/azure", "block_start": "#", "block_end": "#"}, ...]
+    "partitions": [{"block_num": "#", "storage_loc": "aws/gcp/azure", "block_start": "#", "block_end": "#"}, ...] //Not sent when no access to file exists
 }
 3. Request to fileserver for file -> 
 {
@@ -55,4 +55,31 @@ While downloading file:
     "msg_type": "8",
     "uuid": "uuid",
     "file_data": [{"file_path": "<uuid>/<filename>_<block_num>", "file": "<stringyfied_file>"}, ...]
+}
+
+When deleting a file:
+1. Request from client to nameserver to delete file:
+{
+    "msg_type":"9",
+    "uuid":"uuid",
+    "filename":"filename"
+}
+2. Response from nameserver to the request to delete file:
+{
+    "msg_type":"10",
+    "uuid":"uuid",
+    "HAVE_ACCESS": "Y/N",
+    "partitions": [{"block_num": "#", "storage_loc": "<aws/gcp/azure>", "block_start": "#", "block_end": "#"}, ...] //Not sent when no access to file exists
+}
+3. Request to delete file partitions to fileserver:
+{
+    "msg_type": "11",
+    "uuid": "uuid",
+    "file": [{"storage_loc":"<aws/gcp/azure>", "file_path": "<uuid>/<filename>_<block_num>"}, ...]
+}
+4. Response from fileserver:
+{
+    "msg_type": "12",
+    "uuid": "uuid",
+    "ACK": "ACK/NACK"
 }

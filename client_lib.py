@@ -30,9 +30,9 @@ class Client:
         self.nameserver_socket.close()
         self.fileserver_socket.close()
 
-    # Message structure: {"uuid": `uuid`, "filename": `filename`, "file_size": size}
+    # Message structure: {"msg_type": 1, "uuid": `uuid`, "filename": `filename`, "file_size": size}
     def request_nameserver_for_blocks(self, filename, size):
-        msg = {"uuid": self.uuid, "filename": filename, "file_size": size}
+        msg = {"msg_type": "1", "uuid": self.uuid, "filename": filename, "file_size": str(size)}
 
         #Request the nameserver for partitions for the file
         self.nameserver_socket.send(json.dumps(msg).encode('utf-8'))

@@ -1,0 +1,10 @@
+.vscode/
+AWS_S3_Node_REST/
+__pycache__/
+aws/
+awscliv2.zip
+azure.pyc
+event.ics
+new_user_credentials.csv
+package-lock.json
+venv/

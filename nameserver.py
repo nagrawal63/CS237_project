@@ -7,13 +7,21 @@ MAX_CLIENTS = int(10)
 MAX_MSG_SIZE = 2048
 NAMESERVER_PORT = int(10001)
 
+
+def do_client_cleanup():
+    pass
+
 def recv_from_client(clientSocket, addr):
     while True:
         msg = clientSocket.recv(MAX_MSG_SIZE)
         
+        # A close socket message received from client
         if(len(msg) == 0):
+            do_client_cleanup()
             print("Client closed connection")
             break
+
+        
 
 class NameServer:
     receiving_socket = socket(AF_INET, SOCK_STREAM)

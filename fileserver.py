@@ -3,6 +3,7 @@ import thread
 
 HOST = "127.0.0.1"
 MAX_CLIENTS = 10
+FILESERVER_PORT = int(10002)
 
 def recv_from_client(clientSocket, addr):
     print("As")
@@ -30,7 +31,7 @@ class FileServer:
             sock.close()
 
 def main():
-    fileServer = FileServer(1000)
+    fileServer = FileServer(FILESERVER_PORT)
     while True:
         fileServer.accept_client_conn()
 

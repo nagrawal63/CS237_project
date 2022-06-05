@@ -4,6 +4,8 @@ from socket import socket, AF_INET, SOCK_STREAM
 import random
 import string
 import json
+import time
+import os
 
 import definitions as df
 
@@ -22,13 +24,19 @@ class Client:
         except socket.error as er:
             print("Error while connecting to nameserver socket: " + str(er))
         
+        time.sleep(0.1)
         #send out own uuid for nameserver's records
-        self.nameserver_socket.send(self.uuid)
+        self.nameserver_socket.send(self.uuid.encode('utf-8'))
 
-        # try:
-        #     self.fileserver_socket.connect((SERVER_IP, fileserver_port))
-        # except socket.error as er:
-        #     print("Error while connecting to fileserver socket: " + str(er))
+        try:
+            self.fileserver_socket.connect((SERVER_IP, fileserver_port))
+        except socket.error as er:
+            print("Error while connecting to fileserver socket: " + str(er))
+
+        time.sleep(0.1)
+
+        #send out own uuid for fileserver's records
+        self.fileserver_socket.send(self.uuid.encode('utf-8'))
 
     def __del__(self):
         #Close the sockets opened ith the servers before closing
@@ -36,14 +44,14 @@ class Client:
         self.fileserver_socket.close()
 
     def request_nameserver_for_blocks(self, filename, size):
-        msg = {"msg_type": str(df.MSG_TYPES.REQUEST_FILE_UPLOAD_C_2_N), "uuid": self.uuid, "filename": filename, "file_size": str(size)}
+        msg = {"msg_type": df.MSG_TYPES.REQUEST_FILE_UPLOAD_C_2_N, "uuid": self.uuid, "filename": filename, "file_size": str(size)}
 
         #Request the nameserver for partitions for the file
         self.nameserver_socket.send(json.dumps(msg).encode('utf-8'))
 
         #Get list of partitions and cloud type to send the partition to
-        partitions_data = self.nameserver_socket.recv(MAX_MSG_SIZE)
-
+        partitions_data = self.nameserver_socket.recv(MAX_MSG_SIZE).decode('utf-8')
+        print("Partitions data: " + partitions_data)
         try: 
             partitions_data = json.loads(partitions_data)
         except json.JSONDecodeError as er:
@@ -65,12 +73,13 @@ class Client:
     def write(self, file):
         #Write to an existing file
         print("asdc")
-        partition_data = self.request_nameserver_for_blocks(file)
+        filesize = os.path.getsize(file)
+        partition_data = self.request_nameserver_for_blocks(file, filesize)
 
         filePtr = open(file, 'rb')
 
         fileserver_msg = {}
-        fileserver_msg["msg_type"] = str(df.MSG_TYPES.REQUEST_FILE_UPLOAD_C_2_F)
+        fileserver_msg["msg_type"] = df.MSG_TYPES.REQUEST_FILE_UPLOAD_C_2_F
         fileserver_msg["uuid"] = self.uuid
         fileContentArray = []
         for partition in partition_data["partitions"]:
@@ -81,7 +90,7 @@ class Client:
                 + partition["partition_uuid"]
 
             fileContent = filePtr.read(partition["block_end"] - partition["block_start"] + 1)
-            tmp["file_content"] = fileContent
+            tmp["file_content"] = fileContent.decode('utf-8')
 
             fileContentArray.append(tmp)
 
@@ -91,6 +100,6 @@ class Client:
         self.fileserver_socket.send(json.dumps(fileserver_msg).encode('utf-8'))
         
         #wait for some response from the fileserver
-        response_from_fileserver = self.fileserver_socket.recv(MAX_MSG_SIZE)
+        response_from_fileserver = self.fileserver_socket.recv(MAX_MSG_SIZE).decode('utf-8')
 
         return response_from_fileserver

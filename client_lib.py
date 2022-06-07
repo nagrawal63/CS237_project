@@ -6,11 +6,11 @@ import string
 import json
 import time
 import os
+import definitions as df
 
 import definitions as df
 
 SERVER_IP = "127.0.0.1"
-MAX_MSG_SIZE = 2048
 
 class Client:
     nameserver_socket = socket(AF_INET, SOCK_STREAM)
@@ -50,7 +50,7 @@ class Client:
         self.nameserver_socket.send(json.dumps(msg).encode('utf-8'))
 
         #Get list of partitions and cloud type to send the partition to
-        partitions_data = self.nameserver_socket.recv(MAX_MSG_SIZE).decode('utf-8')
+        partitions_data = self.nameserver_socket.recv(df.MAX_MSG_SIZE).decode('utf-8')
         print("Partitions data: " + partitions_data)
         try: 
             partitions_data = json.loads(partitions_data)
@@ -100,6 +100,6 @@ class Client:
         self.fileserver_socket.send(json.dumps(fileserver_msg).encode('utf-8'))
         
         #wait for some response from the fileserver
-        response_from_fileserver = self.fileserver_socket.recv(MAX_MSG_SIZE).decode('utf-8')
+        response_from_fileserver = self.fileserver_socket.recv(df.MAX_MSG_SIZE).decode('utf-8')
 
         return response_from_fileserver

@@ -2,8 +2,9 @@
 from enum import IntEnum
 
 NAMESERVER_PORT = int(10001)
-FILESERVER_PORT = int(10002)
+FILESERVER_PORT = int(10003)
 HOST = "127.0.0.1"
+MAX_MSG_SIZE = int(4096)
 
 class MSG_TYPES(IntEnum):
     REQUEST_FILE_UPLOAD_C_2_N   = 1

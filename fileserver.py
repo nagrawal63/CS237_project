@@ -4,9 +4,9 @@ import json
 import definitions as df
 import cloud_lib as cloud
 
+from azure.storage.blob import BlockBlobService, PublicAccess
 
 MAX_CLIENTS = int(10)
-MAX_MSG_SIZE = 2048
 
 def do_client_cleanup(client_socket):
     client_socket.close()
@@ -14,7 +14,7 @@ def do_client_cleanup(client_socket):
 def recv_from_client(clientSocket, addr, client_conns):
     #Receive the first set of 10 bytes from the client which contains
     #the client's uuid
-    client_uuid = clientSocket.recv(MAX_MSG_SIZE).decode('utf-8')
+    client_uuid = clientSocket.recv(df.MAX_MSG_SIZE).decode('utf-8')
     print("[Fileserver] Received uuid of client is: " + client_uuid)
     if len(client_uuid) != 10:
         print("[FileServer] Error in client uuid, terminating connection, reconnect plis")
@@ -25,7 +25,7 @@ def recv_from_client(clientSocket, addr, client_conns):
         client_conns[addr]["client_uuid"] = client_uuid
 
     while True:
-        msg = clientSocket.recv(MAX_MSG_SIZE).decode('utf-8')
+        msg = clientSocket.recv(df.MAX_MSG_SIZE).decode('utf-8')
         
         # A close socket message received from client
         if(len(msg) == 0):
@@ -33,7 +33,7 @@ def recv_from_client(clientSocket, addr, client_conns):
             print("[FileServer] Client closed connection")
             break
         else:
-            print("[Nameserver] message received: " + msg)
+            # print("[Fileserver] message received: " + msg)
             msg_json = json.loads(msg)
             msg_type = msg_json["msg_type"]
             if msg_type == df.MSG_TYPES.REQUEST_FILE_DELETE_C_2_N:
@@ -97,6 +97,18 @@ class FileServer:
             sock.close()
 
 def main():
+     # Create the BlockBlobService that is used to call the Blob service for the storage account
+    cloud.azure_blob_service_client = BlockBlobService(
+        account_name='cs237version1azure', account_key='71c5QApXXLqW0Q4dqPm8BVYrf2fR3R35aqMNcejMoUBMnx/mkIq/PNq+tgaIoz+1lzQoZF5aFZDFTSSX5B4eCA==')
+
+    # Create a container called 'quickstartblobs'.
+    cloud.azure_container_name = 'cs237version1'
+    cloud.azure_blob_service_client.create_container(cloud.azure_container_name)
+
+    # Set the permission so the blobs are public.
+    cloud.azure_blob_service_client.set_container_acl(
+        cloud.azure_container_name, public_access=PublicAccess.Container)
+
     fileServer = FileServer(df.FILESERVER_PORT)
     while True:
         fileServer.accept_client_conn()

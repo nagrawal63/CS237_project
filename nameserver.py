@@ -8,7 +8,6 @@ import uuid
 import random
 
 MAX_CLIENTS = int(10)
-MAX_MSG_SIZE = 2048
 BLOCK_SIZE = 100
 REPLICATION_FACTOR = 2
 
@@ -48,7 +47,7 @@ def partition_file(filesize, filename, client_uuid, file_table):
 def recv_from_client(clientSocket, addr, client_conns, file_table):
     #Receive the first set of 10 bytes from the client which contains
     #the client's uuid
-    client_uuid = clientSocket.recv(MAX_MSG_SIZE).decode('utf-8')
+    client_uuid = clientSocket.recv(df.MAX_MSG_SIZE).decode('utf-8')
     print("[Nameserver] Received uuid of client is: " + client_uuid)
     if len(client_uuid) != 10:
         print("[NameServer] Error in client uuid, terminating connection, reconnect plis")
@@ -60,7 +59,7 @@ def recv_from_client(clientSocket, addr, client_conns, file_table):
         client_conns[addr]["client_uuid"] = client_uuid
 
     while True:
-        msg = clientSocket.recv(MAX_MSG_SIZE).decode('utf-8')
+        msg = clientSocket.recv(df.MAX_MSG_SIZE).decode('utf-8')
         print("[Nameserver] Received message is : " + msg)
         # A close socket message received from client
         if(len(msg) == 0):

@@ -13,13 +13,14 @@ REPLICATION_FACTOR = 2
 
 CLOUDS = ["aws", "gcp", "azure"]
 
-def do_client_cleanup(client_socket):
+def do_client_cleanup(client_socket, client_conns, addr):
     client_socket.close()
-
+    del client_conns[addr]
 
 #Choose randomly for now
 def choose_clouds_for_partition(filename):
-    return random.sample(CLOUDS, REPLICATION_FACTOR)
+    return ["aws", "gcp"]
+    # return random.sample(CLOUDS, REPLICATION_FACTOR)
 
 def partition_file(filesize, filename, client_uuid, file_table):
     filesize = int(filesize)
@@ -40,9 +41,40 @@ def partition_file(filesize, filename, client_uuid, file_table):
         start = partition_dict["block_end"] + 1
         file_partition_details.append(partition_dict)
     file_json = {}
-    file_json["filename"] = file_partition_details
+    file_json[filename] = file_partition_details
     file_table[client_uuid].append(file_json)
     return file_partition_details
+
+def find_file_in_file_table(client_uuid, file_table, filename):
+    if client_uuid not in file_table.keys():
+        print("[Nameserver] Don't know client with the given uuid")
+        return None
+    
+    for file_json in file_table[client_uuid]:
+        if filename in file_json.keys():
+            return file_json
+
+    print("[Nameserver] Requested file not found at nameserver")
+    return None
+
+def get_file_partitions(client_uuid, filename, file_table):
+    file_json = find_file_in_file_table(client_uuid, file_table, filename)
+    if file_json == None:
+        return file_json
+
+    # partitions = file_json[filename]
+    partitions = []
+    for partition in file_json[filename]:
+        file_partition = {}
+        file_partition["file_path"] = client_uuid + "/" + filename + "/" + partition["block_num"] \
+                                + "/" + partition["partition_uuid"]
+        file_partition["block_num"] = partition["block_num"]
+        file_partition["primary_storage_loc"] = partition["primary_storage_loc"]
+        file_partition["secondary_storage_loc"] = partition["secondary_storage_loc"]
+        file_partition["block_start"] = partition["block_start"]
+        file_partition["block_end"] = partition["block_end"]
+        partitions.append(file_partition)
+    return partitions
 
 def recv_from_client(clientSocket, addr, client_conns, file_table):
     #Receive the first set of 10 bytes from the client which contains
@@ -63,7 +95,7 @@ def recv_from_client(clientSocket, addr, client_conns, file_table):
         print("[Nameserver] Received message is : " + msg)
         # A close socket message received from client
         if(len(msg) == 0):
-            do_client_cleanup(clientSocket)
+            do_client_cleanup(clientSocket, client_conns, addr)
             print("[NameServer] Client closed connection")
             break
         else:
@@ -78,10 +110,22 @@ def recv_from_client(clientSocket, addr, client_conns, file_table):
             #     pass
             # elif msg_type == df.MSG_TYPES.REQUEST_FILE_DOWNLOAD_C_2_F:
             #     pass
-            # elif msg_type == df.MSG_TYPES.REQUEST_FILE_DOWNLOAD_C_2_N:
-            #     pass
-            # elif msg_type == df.MSG_TYPES.REQUEST_FILE_UPLOAD_C_2_F:
-            #     pass
+            elif msg_type == df.MSG_TYPES.REQUEST_FILE_DOWNLOAD_C_2_N:
+                file_partitions = get_file_partitions(msg_json["uuid"], msg_json["filename"], file_table)
+                msg = {"msg_type": df.MSG_TYPES.REPLY_FILE_DOWNLOAD_N_2_C}
+                msg["uuid"] = client_conns[addr]["client_uuid"]
+                msg["filename"] = msg_json["filename"]
+                if file_partitions == None:
+                    msg["have_access"] = "N"
+                else:
+                    msg["have_access"] = "Y"
+                    msg["partitions"] = file_partitions
+                
+                # print("[Nameserver] Reply for request file download from nameserver")
+                # print(json.dumps(msg))
+                #Send reply to client
+                clientSocket.send(json.dumps(msg).encode('utf-8'))
+
             elif msg_type == df.MSG_TYPES.REQUEST_FILE_UPLOAD_C_2_N:
                 #Break file into partitions
                 partitions = partition_file(msg_json["file_size"], msg_json["filename"], client_uuid, file_table)
@@ -120,10 +164,12 @@ class NameServer:
         thread.start()
 
     def __del__(self):
+        #Close receiving socket for new connections
         self.receiving_socket.close()
         #Close all client sockets before destroying the Nameserver object
-        for sock in self.client_conns:
-            sock.close()
+        for client_addr in self.client_conns.keys():
+            self.client_conns[client_addr]["socket"].close()
+            del self.client_conns[client_addr]
         
 
 def main():

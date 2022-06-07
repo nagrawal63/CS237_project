@@ -4,8 +4,9 @@ import definitions as df
 
 def main():
     client = cl.Client(df.NAMESERVER_PORT, df.FILESERVER_PORT)
-    # client.read("dummy")
-    client.write("tmp.txt")
+    client.write("tmp2.txt")
+    file_content = client.read("tmp2.txt")
+    print(file_content)
 
     while True:
         # Sample commands:
@@ -19,9 +20,11 @@ def main():
             continue
         else:
             if user_cmd[0] == "read":
-                client.read(user_cmd[1])
+                file_content = client.read(user_cmd[1])
+                print(file_content)
             elif user_cmd[0] == "write":
-                client.write(user_cmd[1])
+                file_content = client.write(user_cmd[1])
+                print(file_content)
             elif user_cmd[0] == "delete":
                 client.delete(user_cmd[1])
 

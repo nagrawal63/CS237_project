@@ -32,7 +32,8 @@ While uploading a new file:
     "uuid": "uuid",
     "file": [
         {
-            "primary_storage_loc": "<aws/gcp/azure>","secondary_storage_loc": "<aws/gcp/azure>","file_content":"<stringyfied_file>", 
+            "primary_storage_loc": "<aws/gcp/azure>",
+            "secondary_storage_loc": "<aws/gcp/azure>","file_content":"<stringyfied_file>", 
             "file_path": "<uuid>/<filename>/<block_num>/<partition_uuid>"
         },
         .
@@ -63,7 +64,8 @@ While downloading file:
     "partitions": [
         {
             "block_num": "#", 
-            "storage_loc": "aws/gcp/azure", 
+            "primary_storage_loc": "<aws/gcp/azure>",
+            "secondary_storage_loc": "<aws/gcp/azure>", 
             "block_start": "#", 
             "block_end": "#", 
             "file_path": "<uuid>/<filename>/<block_num>/<partition_uuid>"
@@ -71,7 +73,7 @@ While downloading file:
         .
         .
         .
-        ] //Not sent when no access to file exists
+    ] //Not sent when no access to file exists
 }
 <!-- 3. Request to fileserver for file -> 
 {
@@ -98,9 +100,20 @@ When deleting a file:
     "msg_type":"10",
     "uuid":"uuid",
     "HAVE_ACCESS": "Y/N",
-    "partitions": [{"block_num": "#", "storage_loc": "<aws/gcp/azure>", "block_start": "#", "block_end": "#"}, ...] //Not sent when no access to file exists
+    "partitions": [
+        {
+            "block_num": "#", 
+            "primary_storage_loc": "<aws/gcp/azure>",
+            "secondary_storage_loc": "<aws/gcp/azure>",
+            "block_start": "#", 
+            "block_end": "#"
+        },
+         .
+         .
+         .
+        ] //Not sent when no access to file exists
 }
-3. Request to delete file partitions to fileserver:
+<!-- 3. Request to delete file partitions to fileserver:
 {
     "msg_type": "11",
     "uuid": "uuid",
@@ -111,4 +124,40 @@ When deleting a file:
     "msg_type": "12",
     "uuid": "uuid",
     "ACK": "ACK/NACK"
+} -->
+
+
+
+FileTable:
+{
+    "<client_uuid>": [
+        {
+            "<filename>": [
+                {
+                    "partition_uuid": <partition_uuid>,
+                    "block_num": <block_num>,
+                    "block_start": <start_byte_of_partition_in_file>,
+                    "block_end": <end_byte_of_partition_in_file>,
+                    "primary_storage_loc": <aws/gcp/azure>,
+                    "secondary_storage_loc": <aws/gcp/azure>
+                },
+                .
+                .
+                .
+            ]
+        }
+    ],
+    .
+    .
+    .
+}
+
+
+Client_conns:
+{
+    "<addr>": {
+        "socket": <client_socket>,
+        "client_uuid": <client_uuid>
+    },
+
 }

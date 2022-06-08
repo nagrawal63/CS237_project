@@ -43,7 +43,7 @@ def download_gcp(file_path):
 
     blob = bucket.blob(file_path)
     blob.download_to_filename(TMP_FILE_NAME)
-    return get_file_content()
+    return get_file_content(TMP_FILE_NAME)
 
 def delete_gcp(file_path):
     pass
@@ -55,17 +55,18 @@ def upload_azure(dest_file_path):
     full_path_to_file = os.path.join(local_path, TMP_FILE_NAME)
 
     azure_blob_service_client.create_blob_from_path(
-            azure_container_name, TMP_FILE_NAME, full_path_to_file)
+            azure_container_name, dest_file_path, full_path_to_file)
     
     # Hardcoded sleep to let azure do its thing
     time.sleep(0.5)
 
 def download_azure(file_path):
+    # time.sleep(5)
     local_path = os.path.expanduser("./")
     if not os.path.exists(local_path):
         os.makedirs(os.path.expanduser("./"))
     full_path_to_file = os.path.join(local_path, TMP_FILE_NAME)
-    print("Downloading file from azure with file_path: " + full_path_to_file)
+    print("Downloading file from azure with file_path: " + file_path)
     try:
         azure_blob_service_client.get_blob_to_path(
                 azure_container_name, file_path, full_path_to_file)

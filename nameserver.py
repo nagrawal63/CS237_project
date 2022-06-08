@@ -19,8 +19,7 @@ def do_client_cleanup(client_socket, client_conns, addr):
 
 #Choose randomly for now
 def choose_clouds_for_partition(filename):
-    return ["aws", "gcp"]
-    # return random.sample(CLOUDS, REPLICATION_FACTOR)
+    return random.sample(CLOUDS, REPLICATION_FACTOR)
 
 def partition_file(filesize, filename, client_uuid, file_table):
     filesize = int(filesize)
@@ -127,13 +126,26 @@ def recv_from_client(clientSocket, addr, client_conns, file_table):
                 clientSocket.send(json.dumps(msg).encode('utf-8'))
 
             elif msg_type == df.MSG_TYPES.REQUEST_FILE_UPLOAD_C_2_N:
+                #Check if file already present
+                file_json = find_file_in_file_table(client_uuid, file_table, msg_json["filename"])
+                if file_json != None:
+                    #TODO: Change this to actually deleting and then updating the file
+
+                    print("[Nameserver] File already present, doing nothing for now")
+                    msg = {"msg_type": df.MSG_TYPES.REPLY_FILE_UPLOAD_N_2_C, "uuid": client_uuid}
+                    msg["filename"] = msg_json["filename"]
+                    msg["file_size"] = msg_json["file_size"]
+                    msg["partitions"] = []
+                    clientSocket.send(json.dumps(msg).encode('utf-8'))
+                    continue
+
                 #Break file into partitions
                 partitions = partition_file(msg_json["file_size"], msg_json["filename"], client_uuid, file_table)
 
                 #construct reply message for client
                 msg = {}
                 msg["msg_type"] = df.MSG_TYPES.REPLY_FILE_UPLOAD_N_2_C
-                msg["uuid"] = client_conns[addr]["client_uuid"]
+                msg["uuid"] = client_uuid
                 msg["filename"] = msg_json["filename"]
                 msg["file_size"] = msg_json["file_size"]
                 msg["partitions"] = partitions

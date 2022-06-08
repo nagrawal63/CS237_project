@@ -112,6 +112,10 @@ class Client:
         filesize = os.path.getsize(file)
         partition_data = self.request_nameserver_for_new_blocks(file, filesize)
 
+        if len(partition_data["partitions"]) == 0:
+            print("[Client_lib] No partition of file to upload, abort")
+            return False
+
         filePtr = open(file, 'rb')
 
         fileserver_msg = {}
@@ -136,6 +140,6 @@ class Client:
         self.fileserver_socket.send(json.dumps(fileserver_msg).encode('utf-8'))
         
         #wait for some response from the fileserver
-        response_from_fileserver = self.fileserver_socket.recv(df.MAX_MSG_SIZE).decode('utf-8')
+        response_from_fileserver = json.loads(self.fileserver_socket.recv(df.MAX_MSG_SIZE))
 
-        return response_from_fileserver
+        return True if response_from_fileserver["ACK"]=="ACK" else False

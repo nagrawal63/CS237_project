@@ -1,8 +1,8 @@
 
 from enum import IntEnum
 
-NAMESERVER_PORT = int(10005)
-FILESERVER_PORT = int(10006)
+NAMESERVER_PORT = int(10008)
+FILESERVER_PORT = int(10007)
 HOST = "127.0.0.1"
 MAX_MSG_SIZE = int(4096)
 

@@ -45,6 +45,7 @@ def download_gcp(file_path):
     return get_file_content(TMP_FILE_NAME)
 
 def delete_gcp(file_path):
+    print("Deleting file from gcp with file_path: " + file_path)
     storage_client = storage.Client()
     bucket = storage_client.bucket(GCP_bucket_name)
     bucket.blob(file_path).delete()
@@ -78,6 +79,7 @@ def download_azure(file_path):
     return get_file_content(TMP_FILE_NAME)
 
 def delete_azure(file_path):
+    print("Deleting file from azure with file_path: " + file_path)
     azure_blob_service_client.delete_blob(
         container_name=azure_container_name,
         blob_name=file_path, 
@@ -104,6 +106,7 @@ def download_aws(file_path):
     return get_file_content(TMP_FILE_NAME)
 
 def delete_aws(file_path):
+    print("Deleting file from aws with file_path: " + file_path)
     s3 = boto3.resource('s3')
     s3.Object(AWS_bucket_name, file_path).delete()
 

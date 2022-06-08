@@ -107,9 +107,31 @@ class Client:
         #update an existing file
         self.write(filename)
 
-    def delete(self, filename):
-        pass
+    def __get_partitions_to_delete(self, filename):
+        msg = {"msg_type": df.MSG_TYPES.REQUEST_FILE_DELETE_C_2_N, "uuid": self.uuid, "filename": filename}
 
+        #Request nameserver for partitions of the file
+        self.nameserver_socket.send(json.dumps(msg).encode('utf-8'))
+
+        #Receive partitions data from the nameserver
+        partitions_data = self.nameserver_socket.recv(df.MAX_MSG_SIZE).decode('utf-8')
+        try:
+            partitions_data = json.loads(partitions_data)
+        except json.JSONDecodeError as er:
+            print("[Nameserver] Error decoding file's partition data received from nameserver: " + str(er))
+        return partitions_data
+
+    def delete(self, filename):
+        file_partitions = self.__get_partitions_to_delete(filename)
+        print("[Client_lib]file partitions received in delete method:")
+        print(file_partitions)
+        if file_partitions["have_access"] == 'N':
+            print("You don't have access to " + filename)
+            return
+        else:
+            for partition in file_partitions["partitions"]:
+                cl.delete_file(partition["primary_storage_loc"], partition["file_path"])
+                cl.delete_file(partition["secondary_storage_loc"], partition["file_path"])
 
     def write(self, file):
         #Write to an existing file

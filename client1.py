@@ -27,6 +27,13 @@ def main():
                 print(file_content)
             elif user_cmd[0] == "delete":
                 client.delete(user_cmd[1])
+            elif user_cmd[0] == "update":
+                client.update(user_cmd[1])
+            else:
+                print("Invalid command, Usage:")
+                print("  - read <filename>")
+                print("  - write <filename> ")
+                print("  - delete <filename>")
 
 if __name__ == "__main__":
     main()

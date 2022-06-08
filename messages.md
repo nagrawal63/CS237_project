@@ -86,13 +86,13 @@ While uploading a new file:
 While downloading file:
 1. Request nameserver for file -> 
 {
-    "msg_type": "5", 
+    "msg_type": "6", 
     "uuid": `uuid`, 
     "filename": `filename`
 }
 2. Reply from nameserver to client with details of partitions of the file -> 
 {
-    "msg_type": "6", 
+    "msg_type": "7", 
     "uuid": `uuid`, 
     "filename": `filename`, 
     "have_access": "Y/N", 
@@ -110,18 +110,6 @@ While downloading file:
         .
     ] //Not sent when no access to file exists
 }
-<!-- 3. Request to fileserver for file -> 
-{
-    "msg_type":"7", 
-    "uuid":`uuid`, 
-    "file_metadata": [{"file_path": "<uuid>/<filename>_<block_num>", "storage_loc": "aws/azure/gcp"}, ...]
-}
-4. Response of File data from all clouds to be sent to client:
-{
-    "msg_type": "8",
-    "uuid": "uuid",
-    "file_data": [{"file_path": "<uuid>/<filename>_<block_num>", "file": "<stringyfied_file>"}, ...]
-} -->
 
 When deleting a file:
 1. Request from client to nameserver to delete file:
@@ -134,7 +122,7 @@ When deleting a file:
 {
     "msg_type":"10",
     "uuid":"uuid",
-    "HAVE_ACCESS": "Y/N",
+    "have_access": "Y/N",
     "partitions": [
         {
             "block_num": "#", 

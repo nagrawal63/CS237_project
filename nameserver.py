@@ -67,7 +67,9 @@ def delete_file_from_table(file_table, filename, client_uuid):
     if object_to_delete == None:
         print("[Nameserver] File to delete not found")
         return
+    print(str(file_table))
     file_table[client_uuid].remove(object_to_delete)
+    print(str(file_table))
 
 def get_file_partitions(client_uuid, filename, file_table):
     file_json = find_file_in_file_table(client_uuid, file_table, filename)
@@ -117,12 +119,19 @@ def recv_from_client(clientSocket, addr, client_conns, file_table):
                 print("[Nameserver] Error decoding message from client at nameserver")
             msg_type = msg_json["msg_type"]
             if msg_type == df.MSG_TYPES.REQUEST_FILE_DELETE_C_2_N:
-                pass
-            # elif msg_type == df.MSG_TYPES.REQUEST_FILE_DELETE_C_2_F:
-            #     pass
-            # elif msg_type == df.MSG_TYPES.REQUEST_FILE_DOWNLOAD_C_2_F:
-            #     pass
+                file_partitions = get_file_partitions(msg_json["uuid"], msg_json["filename"], file_table)
+                partitions_to_delete_msg = {"msg_type": df.MSG_TYPES.REPLY_FILE_DELETE_N_2_C}
+                partitions_to_delete_msg["uuid"] = client_uuid
+                if file_partitions == None:
+                    partitions_to_delete_msg["have_access"] = "N"
+                else:
+                    partitions_to_delete_msg["have_access"] = "Y"
+                    delete_file_from_table(file_table, msg_json["filename"], client_uuid)
+                    partitions_to_delete_msg["partitions"] = file_partitions
+                clientSocket.send(json.dumps(partitions_to_delete_msg).encode('utf-8'))
+
             elif msg_type == df.MSG_TYPES.REQUEST_FILE_DOWNLOAD_C_2_N:
+                print("received request to read file: " + msg_json["filename"])
                 file_partitions = get_file_partitions(msg_json["uuid"], msg_json["filename"], file_table)
                 msg = {"msg_type": df.MSG_TYPES.REPLY_FILE_DOWNLOAD_N_2_C}
                 msg["uuid"] = client_conns[addr]["client_uuid"]
@@ -181,6 +190,7 @@ def recv_from_client(clientSocket, addr, client_conns, file_table):
                     clientSocket.send(json.dumps(msg).encode('utf-8'))
             else:
                 print("[NameServer] Invalid message type, ignoring request")
+
 class NameServer:
     receiving_socket = socket(AF_INET, SOCK_STREAM)
     client_conns = {}

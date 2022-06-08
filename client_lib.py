@@ -48,7 +48,7 @@ class Client:
         self.nameserver_socket.close()
         self.fileserver_socket.close()
 
-    def request_nameserver_for_new_blocks(self, filename, size):
+    def __request_nameserver_for_new_blocks(self, filename, size):
         msg = {"msg_type": df.MSG_TYPES.REQUEST_FILE_UPLOAD_C_2_N, "uuid": self.uuid, "filename": filename, "file_size": str(size)}
 
         #Request the nameserver for partitions for the file
@@ -64,7 +64,7 @@ class Client:
 
         return partitions_data
 
-    def get_file_blocks_from_nameserver(self, filename):
+    def __get_file_blocks_from_nameserver(self, filename):
         msg = {"msg_type": df.MSG_TYPES.REQUEST_FILE_DOWNLOAD_C_2_N, "uuid": self.uuid, "filename": filename}
 
         #Request nameserver for partitions of the file
@@ -81,7 +81,7 @@ class Client:
     def read(self, filename):
         #Read a file given a filename
         print("Reading...")
-        file_partitions = self.get_file_blocks_from_nameserver(filename)
+        file_partitions = self.__get_file_blocks_from_nameserver(filename)
 
         if file_partitions["have_access"] == 'N':
             print("You don't have access to " + filename)
@@ -89,7 +89,7 @@ class Client:
         else:
             num_partitions = len(file_partitions["partitions"])
             file_data = [None for _ in range(num_partitions)]
-            print("Number of partitions to read from: " + str(num_partitions))
+            # print("Number of partitions to read from: " + str(num_partitions))
             for partition in file_partitions["partitions"]:
                 partition_content = cl.download_file_partition(partition["primary_storage_loc"], partition["file_path"])
                 #COuld not get partition data from primary location,
@@ -103,36 +103,50 @@ class Client:
             
             return ''.join(file_data)
 
+    def update(self, filename):
+        #update an existing file
+        self.write(filename)
+
     def delete(self, filename):
-        #Delete an existing file
-        print("Asdc")
+        pass
+
 
     def write(self, file):
         #Write to an existing file
         filesize = os.path.getsize(file)
-        partition_data = self.request_nameserver_for_new_blocks(file, filesize)
+        partition_data = self.__request_nameserver_for_new_blocks(file, filesize)
+        
+        #File already exists, update the file
+        if partition_data["msg_type"] == df.MSG_TYPES.REPLY_EXISTING_FILE_UPLOAD_N_2_C:
+            for partition in partition_data["old_partitions"]:
+                print(partition)
+                file_path = self.uuid + "/" + file + "/" + partition["block_num"]\
+                    + "/" + partition["partition_uuid"]
+                cl.delete_file(partition["primary_storage_loc"], file_path)
+                cl.delete_file(partition["secondary_storage_loc"], file_path)
+                # partition_data = json.loads(self.nameserver_socket.recv(df.MAX_MSG_SIZE).decode('utf-8'))
+            
 
         if len(partition_data["partitions"]) == 0:
             print("[Client_lib] No partition of file to upload, abort")
             return False
 
-        filePtr = open(file, 'rb')
-
         fileserver_msg = {}
         fileserver_msg["msg_type"] = df.MSG_TYPES.REQUEST_FILE_UPLOAD_C_2_F
         fileserver_msg["uuid"] = self.uuid
         fileContentArray = []
-        for partition in partition_data["partitions"]:
-            tmp = {}
-            tmp["primary_storage_loc"] = partition["primary_storage_loc"]
-            tmp["secondary_storage_loc"] = partition["secondary_storage_loc"]
-            tmp["file_path"] = self.uuid + "/" + file + "/" + partition["block_num"]\
-                + "/" + partition["partition_uuid"]
 
-            fileContent = filePtr.read(partition["block_end"] - partition["block_start"] + 1)
-            tmp["file_content"] = fileContent.decode('utf-8')
+        with open(file, 'rb') as filePtr:
+            for partition in partition_data["partitions"]:
+                tmp = {}
+                tmp["primary_storage_loc"] = partition["primary_storage_loc"]
+                tmp["secondary_storage_loc"] = partition["secondary_storage_loc"]
+                tmp["file_path"] = self.uuid + "/" + file + "/" + partition["block_num"]\
+                    + "/" + partition["partition_uuid"]
 
-            fileContentArray.append(tmp)
+                fileContent = filePtr.read(partition["block_end"] - partition["block_start"] + 1)
+                tmp["file_content"] = fileContent.decode('utf-8')
+                fileContentArray.append(tmp)
 
         fileserver_msg["file"] = fileContentArray
 

@@ -6,6 +6,7 @@ import definitions as df
 import math
 import uuid
 import random
+import time
 
 MAX_CLIENTS = int(10)
 BLOCK_SIZE = 100
@@ -30,12 +31,13 @@ def partition_file(filesize, filename, client_uuid, file_table):
         partition_dict = {}
         partition_uuid = str(uuid.uuid1())
         storage_locations_for_partition = choose_clouds_for_partition(filename)
-        partition_dict["partition_uuid"] = partition_uuid
+
         partition_dict["block_num"] = str(i+1)
-        partition_dict["block_start"] = start
-        partition_dict["block_end"] = min(start + BLOCK_SIZE - 1, end)
         partition_dict["primary_storage_loc"] = storage_locations_for_partition[0]
         partition_dict["secondary_storage_loc"] = storage_locations_for_partition[1]
+        partition_dict["block_start"] = start
+        partition_dict["block_end"] = min(start + BLOCK_SIZE - 1, end)
+        partition_dict["partition_uuid"] = partition_uuid
 
         start = partition_dict["block_end"] + 1
         file_partition_details.append(partition_dict)
@@ -55,6 +57,17 @@ def find_file_in_file_table(client_uuid, file_table, filename):
 
     print("[Nameserver] Requested file not found at nameserver")
     return None
+
+def delete_file_from_table(file_table, filename, client_uuid):
+    object_to_delete = None
+    for file in file_table[client_uuid]:
+        if filename in file.keys():
+            object_to_delete = file
+    
+    if object_to_delete == None:
+        print("[Nameserver] File to delete not found")
+        return
+    file_table[client_uuid].remove(object_to_delete)
 
 def get_file_partitions(client_uuid, filename, file_table):
     file_json = find_file_in_file_table(client_uuid, file_table, filename)
@@ -91,7 +104,7 @@ def recv_from_client(clientSocket, addr, client_conns, file_table):
 
     while True:
         msg = clientSocket.recv(df.MAX_MSG_SIZE).decode('utf-8')
-        print("[Nameserver] Received message is : " + msg)
+        # print("[Nameserver] Received message is : " + msg)
         # A close socket message received from client
         if(len(msg) == 0):
             do_client_cleanup(clientSocket, client_conns, addr)
@@ -130,28 +143,42 @@ def recv_from_client(clientSocket, addr, client_conns, file_table):
                 file_json = find_file_in_file_table(client_uuid, file_table, msg_json["filename"])
                 if file_json != None:
                     #TODO: Change this to actually deleting and then updating the file
-
-                    print("[Nameserver] File already present, doing nothing for now")
-                    msg = {"msg_type": df.MSG_TYPES.REPLY_FILE_UPLOAD_N_2_C, "uuid": client_uuid}
+                    
+                    print("[Nameserver] File already present, will start file update procedure")
+                    msg = {"msg_type": df.MSG_TYPES.REPLY_EXISTING_FILE_UPLOAD_N_2_C, "uuid": client_uuid}
                     msg["filename"] = msg_json["filename"]
                     msg["file_size"] = msg_json["file_size"]
-                    msg["partitions"] = []
+                    msg["old_partitions"] = file_json[msg_json["filename"]]
+                    # clientSocket.send(json.dumps(msg).encode('utf-8'))
+                    delete_file_from_table(file_table, msg_json["filename"], client_uuid)
+
+                    #Break file into partitions
+                    partitions = partition_file(msg_json["file_size"], msg_json["filename"], client_uuid, file_table)
+
+                    #construct reply message for client
+                    msg = {}
+                    msg["msg_type"] = df.MSG_TYPES.REPLY_FILE_UPLOAD_N_2_C
+                    msg["uuid"] = client_uuid
+                    msg["filename"] = msg_json["filename"]
+                    msg["file_size"] = msg_json["file_size"]
+                    msg["partitions"] = partitions
+                    #send reply to client
+                    time.sleep(1)
                     clientSocket.send(json.dumps(msg).encode('utf-8'))
-                    continue
 
-                #Break file into partitions
-                partitions = partition_file(msg_json["file_size"], msg_json["filename"], client_uuid, file_table)
-
-                #construct reply message for client
-                msg = {}
-                msg["msg_type"] = df.MSG_TYPES.REPLY_FILE_UPLOAD_N_2_C
-                msg["uuid"] = client_uuid
-                msg["filename"] = msg_json["filename"]
-                msg["file_size"] = msg_json["file_size"]
-                msg["partitions"] = partitions
-
-                #send reply to client
-                clientSocket.send(json.dumps(msg).encode('utf-8'))
+                
+                else:
+                    #Break file into partitions
+                    partitions = partition_file(msg_json["file_size"], msg_json["filename"], client_uuid, file_table)
+                    #construct reply message for client
+                    msg = {}
+                    msg["msg_type"] = df.MSG_TYPES.REPLY_FILE_UPLOAD_N_2_C
+                    msg["uuid"] = client_uuid
+                    msg["filename"] = msg_json["filename"]
+                    msg["file_size"] = msg_json["file_size"]
+                    msg["partitions"] = partitions
+                    #send reply to client
+                    clientSocket.send(json.dumps(msg).encode('utf-8'))
             else:
                 print("[NameServer] Invalid message type, ignoring request")
 class NameServer:

@@ -17,7 +17,9 @@ While uploading a new file:
     "partitions": [
         {
             "block_num": "#", 
-            "primary_storage_loc": "<aws/gcp/azure>","secondary_storage_loc": "<aws/gcp/azure>","block_start": "#", 
+            "primary_storage_loc": "<aws/gcp/azure>",
+            "secondary_storage_loc": "<aws/gcp/azure>",
+            "block_start": "#", 
             "block_end": "#",
             "partition_uuid": "<partition_uuid>"
         },
@@ -46,6 +48,39 @@ While uploading a new file:
     "msg_type": "4",
     "uuid": "uuid", 
     "ACK": "ACK/NACK"
+}
+5. Updating an existing file ->
+{
+    "msg_type": "5", 
+    "uuid": `uuid`, 
+    "filename": `filename`, 
+    "file_size": `size`, 
+    "old_partitions": [
+        {
+            "block_num": "#", 
+            "primary_storage_loc": "<aws/gcp/azure>",
+            "secondary_storage_loc": "<aws/gcp/azure>",
+            "block_start": "#", 
+            "block_end": "#",
+            "partition_uuid": "<partition_uuid>"
+        },
+         .
+         .
+         .
+    ]
+    "partitions": [
+        {
+            "block_num": "#", 
+            "primary_storage_loc": "<aws/gcp/azure>",
+            "secondary_storage_loc": "<aws/gcp/azure>",
+            "block_start": "#", 
+            "block_end": "#",
+            "partition_uuid": "<partition_uuid>"
+        },
+         .
+         .
+         .
+    ]
 }
 
 While downloading file:
@@ -106,7 +141,8 @@ When deleting a file:
             "primary_storage_loc": "<aws/gcp/azure>",
             "secondary_storage_loc": "<aws/gcp/azure>",
             "block_start": "#", 
-            "block_end": "#"
+            "block_end": "#",
+            "file_path": "<uuid>/<filename>/<block_num>/<partition_uuid>"
         },
          .
          .
